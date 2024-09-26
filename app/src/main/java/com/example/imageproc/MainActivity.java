@@ -61,13 +61,15 @@ public class MainActivity extends CameraActivity {
     TextView tv;
     ImageView matResult;
     double rotationSum;
-    //double movement;
+    double x_sum,y_sum;
 
     Mat curr_gray , prev_gray , dst , descriptor1 , descriptor2 ,result;
     boolean is_init;
     MatOfKeyPoint keyPoints1 , keyPoints2 ;
     MatOfDMatch matches;
-    //List<MatOfPoint> keyPoints1,keyPoints2;
+
+    Mat srcPoints;
+    Mat dstPoints;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +86,7 @@ public class MainActivity extends CameraActivity {
         cameraBridgeViewBase.setCvCameraViewListener(new CameraBridgeViewBase.CvCameraViewListener2() {
             @Override
             public void onCameraViewStarted(int width, int height) {
+
                 System.out.print("hello");
                 curr_gray = new Mat();
                 prev_gray = new Mat();
@@ -99,8 +102,10 @@ public class MainActivity extends CameraActivity {
 
                 matches = new MatOfDMatch();
 
+
                 rotationSum = 0;
-                //cnts = new ArrayList<>();
+                x_sum = 0;
+                y_sum = 0;
             }
 
             @Override
@@ -117,6 +122,8 @@ public class MainActivity extends CameraActivity {
                     return prev_gray;//剛開始沒初始 先回傳當前畫面灰度
 
                 }
+
+
 
                 curr_gray = inputFrame.gray();
 
@@ -137,6 +144,7 @@ public class MainActivity extends CameraActivity {
                 orb.detectAndCompute( curr_gray , new Mat() , keyPoints2 , descriptor2 );
 
                 BFMatcher matcher = BFMatcher.create( Core.NORM_HAMMING , true );
+
                 if( descriptor1.empty() || descriptor2.empty() ){//若兩偵圖其一的關鍵點描述子為空
                     return curr_gray;
                 }else{
@@ -166,21 +174,30 @@ public class MainActivity extends CameraActivity {
                     dstPointsList.add(keypoints2Array[match.trainIdx].pt);
                 }
 
-                Mat srcPoints = Converters.vector_Point2f_to_Mat(srcPointsList);
-                Mat dstPoints = Converters.vector_Point2f_to_Mat(dstPointsList);
+                srcPoints = Converters.vector_Point2f_to_Mat(srcPointsList);
+                dstPoints = Converters.vector_Point2f_to_Mat(dstPointsList);
 
                 // 計算M 旋轉平移矩陣
+
                 Mat M = Calib3d.estimateAffinePartial2D(srcPoints, dstPoints);
+                if( M.empty() ){
+                    return curr_gray;
+                }
 
                 // 提取旋轉角度
                 double rotationAngle = -Math.atan2(M.get(0, 1)[0], M.get(0, 0)[0]) * 180 / Math.PI;
+                double t_x = M.get(0, 2)[0];
+                double t_y = M.get(1, 2)[0];
+
                 rotationSum += rotationAngle;
+                x_sum += t_x;
+                y_sum += t_y;
 
                 runOnUiThread(new Runnable() {//這裡計算並顯示兩偵圖片中匹配到的keypoint數量 上限500
                     @Override
                     public void run() {
 
-                        tv.setText(String.valueOf(rotationSum));
+                        tv.setText(String.valueOf(rotationSum)+"\n\n"+"x平移:"+String.format("%.3f",x_sum)+"\n"+"y平移:"+String.format("%.3f",y_sum));
 
                     }
                 });
