@@ -122,7 +122,7 @@ public class MainActivity extends CameraActivity {
 
                 ORB orb = ORB.create();
                 orb.setEdgeThreshold( 40 );//設置找keypoint時圖像邊緣的閥值
-                orb.setFastThreshold( 150 );//檢測keypoint時的閥值
+                orb.setFastThreshold( 70 );//檢測keypoint時的閥值
 
                 keyPoints1.release();
                 keyPoints2.release();
